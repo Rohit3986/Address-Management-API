@@ -85,7 +85,7 @@ async def get_address_by_house_id(state:str = None):
         return {"error":str(e),"message":"something went wrong"}
 
 #-------------------------- this endpoint is for deleting address entries-------------------
-@app.post("/delete_address")
+@app.delete("/delete_address")
 async def delete(id:int):
     try:
         session=Session(bind=database.engine,expire_on_commit=False)
