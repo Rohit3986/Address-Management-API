@@ -2,17 +2,34 @@
 #-------------------------importing necessary libraries----------------------
 import database
 import models
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Depends
+from starlette.status import HTTP_401_UNAUTHORIZED
 import uvicorn
 from sqlalchemy.orm import Session
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.openapi.utils import get_openapi
+
 app=FastAPI() #creating instance of fastapi
+security = HTTPBasic()
 
 models.database.Base.metadata.create_all(bind=database.engine)
 
+
+
+
+# Sample hardcoded username and password (for demonstration purposes only)
+username = "admin"
+password = "password"
+
+def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
+    if credentials.username != username or credentials.password != password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    return credentials.username
+
+
 #-------------------------- this endpoint is for adding/creating address entries-------------------
 @app.post("/add_address/")
-async def create(country:str,state:str,district:str,area:str,house_number:str):
+async def create(country:str,state:str,district:str,area:str,house_number:str,username: str = Depends(get_current_username),):
     try:
         session=Session(bind=database.engine,expire_on_commit=False)
         db_user = models.Address(house_number=house_number, area=area,district=district,state=state,country=country)
@@ -26,7 +43,7 @@ async def create(country:str,state:str,district:str,area:str,house_number:str):
 
 #-------------------------- this block is for updating address entries-------------------
 @app.patch("/update_address")
-async def update(id: int, country:str,state:str,district:str,area:str,house_number:str):
+async def update(id: int, country:str,state:str,district:str,area:str,house_number:str , username: str = Depends(get_current_username)):
     try:
         session=Session(bind=database.engine,expire_on_commit=False)
         db_user = session.query(models.Address).get(id)
@@ -45,7 +62,7 @@ async def update(id: int, country:str,state:str,district:str,area:str,house_numb
 
 #----------- this endpoint is for reading/retriveing a particular address from database-------------------
 @app.get("/get_address_by_address_id/")
-def get_address_by_house_id(id:int):
+def get_address_by_house_id(id:int , username: str = Depends(get_current_username)):
     try:
         session=Session(bind=database.engine,expire_on_commit=False)
         db_user = session.query(models.Address).get(id)
@@ -60,7 +77,7 @@ def get_address_by_house_id(id:int):
 
 #----------- this endpoint is for reading/retriveing all address from database-------------------
 @app.get("/get_all_entries/")
-async def get_address_by_house_id():
+async def get_address_by_house_id(username: str = Depends(get_current_username)):
     try:
         session=Session(bind=database.engine,expire_on_commit=False)
         db_user = session.query(models.Address).all()
@@ -74,7 +91,7 @@ async def get_address_by_house_id():
 
 #-------------------------- this endpoint is for reading/retriveing all address from database-------------------
 @app.get("/get_address_by_state/")
-async def get_address_by_house_id(state:str = None):
+async def get_address_by_house_id(state:str = None, username: str = Depends(get_current_username)):
     try:
         session=Session(bind=database.engine,expire_on_commit=False)
         db_user=session.query(models.Address).filter(models.Address.state==state).all()
@@ -86,7 +103,7 @@ async def get_address_by_house_id(state:str = None):
 
 #-------------------------- this endpoint is for deleting address entries-------------------
 @app.delete("/delete_address")
-async def delete(id:int):
+async def delete(id:int, username: str = Depends(get_current_username)):
     try:
         session=Session(bind=database.engine,expire_on_commit=False)
         db_user = session.query(models.Address).get(id)
